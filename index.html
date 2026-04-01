@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Polaroid Wall</title>
+<style>
+body {
+    margin: 0;
+    font-family: 'Arial', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(120deg, #cce7ff, #d8b4ff, #b4ffdf);
+    background-size: 600% 600%;
+    animation: gradientBG 20s ease infinite;
+}
+
+@keyframes gradientBG {
+    0% { background-position:0% 50%; }
+    50% { background-position:100% 50%; }
+    100% { background-position:0% 50%; }
+}
+
+.wall {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 50px;
+    justify-content: center;
+    max-width: 1000px;
+}
+
+.polaroid {
+    padding: 10px 10px 30px 10px;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.3s, box-shadow 0.3s, background-color 2s ease;
+    position: relative;
+    overflow: visible;
+    background-color: rgba(255,255,255,0.8); /* will be updated by JS */
+}
+
+.polaroid img {
+    width: 150px;
+    height: 150px;
+    object-fit: cover;
+    border: 5px solid #fff;
+    display: block;
+    margin-bottom: 10px;
+}
+
+.polaroid p { margin: 0; font-size: 14px; color: #555; }
+
+.doodle {
+    position: absolute;
+    pointer-events: none;
+    opacity: 0.8;
+    animation: float 4s infinite alternate;
+}
+
+@keyframes float {
+    0% { transform: translateY(0px) rotate(0deg); }
+    100% { transform: translateY(-8px) rotate(10deg); }
+}
+
+/* Shapes */
+.star { width: 12px; height: 12px; background: #fff9a6; clip-path: polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%); }
+.heart { width: 14px; height: 14px; background: #ff9fc3; clip-path: polygon(50% 15%,61% 0%,100% 25%,80% 50%,50% 85%,20% 50%,0% 25%,39% 0%); }
+.sparkle { width: 8px; height: 8px; background: #fff; clip-path: polygon(50% 0%,60% 40%,100% 50%,60% 60%,50% 100%,40% 60%,0% 50%,40% 40%); }
+
+.star.small { width: 8px; height: 8px; }
+.heart.small { width: 10px; height: 10px; }
+.sparkle.small { width: 6px; height: 6px; }
+</style>
+</head>
+<body>
+
+<div class="wall">
+    <div class="polaroid"><img src="https://picsum.photos/150/150?random=1"><p>Caption 1</p></div>
+    <div class="polaroid"><img src="https://picsum.photos/150/150?random=2"><p>Caption 2</p></div>
+    <div class="polaroid"><img src="https://picsum.photos/150/150?random=3"><p>Caption 3</p></div>
+    <div class="polaroid"><img src="https://picsum.photos/150/150?random=4"><p>Caption 4</p></div>
+    <div class="polaroid"><img src="https://picsum.photos/150/150?random=5"><p>Caption 5</p></div>
+</div>
+
+<script>
+// Tilt polaroids
+const polaroids = document.querySelectorAll('.polaroid');
+polaroids.forEach(polaroid => {
+    const angle = Math.floor(Math.random()*21)-10;
+    polaroid.style.transform = `rotate(${angle}deg)`;
+    let direction = 1;
+    setInterval(()=>{
+        let current = parseFloat(polaroid.style.transform.replace('rotate(','').replace('deg)',''));
+        if(current>angle+2) direction=-1;
+        if(current<angle-2) direction=1;
+        polaroid.style.transform = `rotate(${current+0.1*direction}deg)`;
+    },50);
+
+    // Add doodles
+    const img = polaroid.querySelector('img');
+    const doodleTypes = ['star','heart','sparkle'];
+    const numDoodles = 3 + Math.floor(Math.random()*3);
+    for(let i=0;i<numDoodles;i++){
+        const div = document.createElement('div');
+        const type = doodleTypes[Math.floor(Math.random()*doodleTypes.length)];
+        div.className = `doodle ${type} ${Math.random()>0.7?'small':''}`;
+        const maxWidth = polaroid.offsetWidth;
+        const maxHeight = polaroid.offsetHeight;
+        const imgTop = img.offsetTop;
+        const imgLeft = img.offsetLeft;
+        const imgWidth = img.offsetWidth;
+        const imgHeight = img.offsetHeight;
+        let left, top;
+        do {
+            left = Math.random()*(maxWidth-10);
+            top = Math.random()*(maxHeight-10);
+        } while(left>imgLeft && left<imgLeft+imgWidth && top>imgTop && top<imgTop+imgHeight);
+        div.style.left = left + 'px';
+        div.style.top = top + 'px';
+        polaroid.appendChild(div);
+    }
+});
+
+// Pastel frames synced with gradient
+function pastelFrameColor(t){
+    // interpolate HSL for pastel colors
+    const colors = [
+        {h:200,s:60,l:85}, // #cce7ff pastel
+        {h:270,s:60,l:85}, // #d8b4ff pastel
+        {h:140,s:60,l:85}  // #b4ffdf pastel
+    ];
+    let idx = Math.floor(t*(colors.length-1));
+    let nextIdx = (idx+1)%colors.length;
+    let ratio = (t*(colors.length-1))-idx;
+    const h = colors[idx].h*(1-ratio)+colors[nextIdx].h*ratio;
+    const s = colors[idx].s*(1-ratio)+colors[nextIdx].s*ratio;
+    const l = colors[idx].l*(1-ratio)+colors[nextIdx].l*ratio;
+    return `hsl(${h},${s}%,${l}%)`;
+}
+
+let t=0;
+setInterval(()=>{
+    t+=0.0025;
+    if(t>1) t=0;
+    const color = pastelFrameColor(t);
+    polaroids.forEach(p=>p.style.backgroundColor=color);
+},100);
+</script>
+
+</body>
+</html>
